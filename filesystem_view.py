@@ -144,6 +144,10 @@ class fs_view:
         return ftp_file(self.getOSSBucketName(path), self.getFileName(path), self.oss).isfile()
     
     def isdir(self, path):
+        if self.isBucket(path):
+            return True
+        if self.isRoot(path):
+            return True
         path = self.normalizeSeparateChar(path)
         return ftp_file(self.getOSSBucketName(path), self.getFileName(path), self.oss).isdir()
     
