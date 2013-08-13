@@ -7,11 +7,11 @@ import tempfile
 import stat
 import pdb
 
+from pyftpdlib.filesystems import FilesystemError
 from pyftpdlib._compat import PY3, u, unicode, property
 _months_map = {1:'Jan', 2:'Feb', 3:'Mar', 4:'Apr', 5:'May', 6:'Jun', 7:'Jul',
                8:'Aug', 9:'Sep', 10:'Oct', 11:'Nov', 12:'Dec'}
-
-
+    
 class ftpFS(AbstractedFS):
     timer = 0
     def __init__(self, root, cmd_channel):
@@ -61,6 +61,8 @@ class ftpFS(AbstractedFS):
             path = u'/'
         if not path.startswith('/'):
             path = '/' + path
+        if not self.isdir(path):
+            raise FilesystemError, 'Not a dir.'
         self._cwd = path
     
     def mkdir(self, path):
@@ -149,7 +151,10 @@ class ftpFS(AbstractedFS):
                 continue
             file = os.path.join(basedir, basename)
             isdir = self.isdir(file)
-            perms = '-rw-rw-rw-'
+            if isdir:
+                perms = 'drwxrwxrwx'
+            else:
+                perms = '-rw-rw-rw-'
             nlinks = 1
             uname = 'owner'
             gname = 'group'
