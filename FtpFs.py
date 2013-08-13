@@ -8,6 +8,9 @@ import stat
 import pdb
 
 from pyftpdlib._compat import PY3, u, unicode, property
+_months_map = {1:'Jan', 2:'Feb', 3:'Mar', 4:'Apr', 5:'May', 6:'Jun', 7:'Jul',
+               8:'Aug', 9:'Sep', 10:'Oct', 11:'Nov', 12:'Dec'}
+
 
 class ftpFS(AbstractedFS):
     timer = 0
@@ -139,19 +142,27 @@ class ftpFS(AbstractedFS):
         else:
             timefunc = time.localtime
         SIX_MONTHS = 180 * 24 * 60 * 60
-        readlink = getattr(self, 'readlink', None)
+        #readlink = getattr(self, 'readlink', None)
         now = time.time()
         for (basename, size, modify) in listing:
             if basename == '':
                 continue
             file = os.path.join(basedir, basename)
-            perms = 'rwxrwxrwx'
+            isdir = self.isdir(file)
+            perms = '-rw-rw-rw-'
             nlinks = 1
-            size = 0
-            uname = 'user'
-            gname = 'user'
+            uname = 'owner'
+            gname = 'group'
             mtime = timefunc(now)
-            mtimestr = "1111111"
+            mtimestr = "Aug 13 03:35"
+            if not isdir:
+                mtimestr = "%s %s" % (_months_map[int(modify[5:7])],
+                                      "%s %s:%s" % (modify[2:4], modify[11:13], modify[14:16]))
+            else:
+                #mtimestr = "Aug 13 03:35"
+                mtimestr = "%s %s" % (_months_map[mtime.tm_mon],
+                                      time.strftime("%d %H:%M", mtime))
+                size = 0
             
             islink = False
             line = "%s %3s %-8s %-8s %8s %s %s\r\n" % (perms, nlinks, uname, gname,
