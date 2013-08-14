@@ -194,10 +194,12 @@ class AbstractedFS(object):
             p = os.path.normpath(fspath)
         else:
             p = os.path.normpath(os.path.join(self.root, fspath))
+        #print p, self.root
         if not self.validpath(p):
             return u('/')
         p = p.replace(os.sep, "/")
-        p = p[len(self.root):]
+        if self.root != '.':      #bug fixme
+            p = p[len(self.root):]
         if not p.startswith('/'):
             p = '/' + p
         return p
@@ -436,6 +438,7 @@ class AbstractedFS(object):
         SIX_MONTHS = 180 * 24 * 60 * 60
         readlink = getattr(self, 'readlink', None)
         now = time.time()
+        print listing
         for basename in listing:
             if not PY3:
                 try:
@@ -498,6 +501,7 @@ class AbstractedFS(object):
             # formatting is matched with proftpd ls output
             line = "%s %3s %-8s %-8s %8s %s %s\r\n" % (perms, nlinks, uname, gname,
                                                        size, mtimestr, basename)
+            print line
             yield line.encode('utf8', self.cmd_channel.unicode_errors)
 
     def format_mlsx(self, basedir, listing, perms, facts, ignore_err=True):

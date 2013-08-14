@@ -3,8 +3,8 @@ from ftp_file import *
 
 class fs_view:
     host = 'oss.aliyuncs.com'
-    access_id = 'c35SzGhvT6ovyOej'
-    access_key = 'poExTElXz9fzLsTO4kzL8FKmh2d42k'
+    access_id = ''
+    access_key = ''
     
     def __init__(self):
         self.oss = OssAPI(self.host, self.access_id, self.access_key)
@@ -144,11 +144,11 @@ class fs_view:
         return ftp_file(self.getOSSBucketName(path), self.getFileName(path), self.oss).isfile()
     
     def isdir(self, path):
+        path = self.normalizeSeparateChar(path)
         if self.isBucket(path):
             return True
         if self.isRoot(path):
             return True
-        path = self.normalizeSeparateChar(path)
         return ftp_file(self.getOSSBucketName(path), self.getFileName(path), self.oss).isdir()
     
 fsview = fs_view()

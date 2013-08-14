@@ -2,10 +2,12 @@ from oss_client.oss_api import *
 from oss_client.oss_util import *
 from pyftpdlib._compat import PY3, u, unicode, property
 import time
+import pdb
 
 class ftp_file:
     size_cache = {}
-    expire_time = 60
+    dir_cache = {}
+    expire_time = 10
     
     def __init__(self, bucket, object, oss):
         self.bucket = self.stripFirstDelimiter(bucket)
@@ -93,32 +95,42 @@ class ftp_file:
         for entry in self.object_list:
             toAdd = entry[0][len(object):]
             self.contents.append((toAdd, entry[1], entry[2]))
-            self.cache_set((self.bucket, entry[0]), entry[1])
+            self.cache_set(self.size_cache, (self.bucket, entry[0]), entry[1])
         for entry in self.dir_list:
             toAdd = entry[len(object):]
-            self.contents.append((toAdd, entry[1], entry[2]))
+            self.contents.append((toAdd, -1, 0))
         
         return self.contents
         
     def isfile(self):
+        value = self.cache_get(self.dir_cache, (self.bucket, self.object))
+        if value != None:
+            return not value
         self.listdir()
-        return len(self.contents) == 0
+        value = (len(self.contents) == 0)
+        self.cache_set(self.dir_cache, (self.bucket, self.object), not value)
+        return value
     
     def isdir(self):
-        return not self.isfile()
+        value = self.cache_get(self.dir_cache, (self.bucket, self.object))
+        if value != None:
+            return value
+        value = not self.isfile()
+        self.cache_set(self.dir_cache, (self.bucket, self.object), value)
+        return value
     
-    def cache_get(self, key):
-        if self.size_cache.has_key(key):
-            if self.size_cache[key][1] + self.expire_time < time.time():
+    def cache_get(self, cache, key):
+        if cache.has_key(key):
+            if cache[key][1] + self.expire_time < time.time():
                 return None
-            return self.size_cache[key][0]
+            return cache[key][0]
         return None
     
-    def cache_set(self, key, value):
-        self.size_cache[key] = (value, time.time())
+    def cache_set(self, cache, key, value):
+        cache[key] = (value, time.time())
         
     def getsize(self):
-        value = self.cache_get((self.bucket, self.object))
+        value = self.cache_get(self.size_cache, (self.bucket, self.object))
         if value != None:
             return value
         resp = self.oss.head_object(self.bucket, self.object)
@@ -126,11 +138,13 @@ class ftp_file:
         if (resp.status / 100) == 2:
             header_map = convert_header2map(resp.getheaders())
             content_len = safe_get_element("content-length", header_map)
-            self.cache_set((self.bucket, self.object), content_len)
+            self.cache_set(self.size_cache, (self.bucket, self.object), content_len)
         return content_len
     
     def open_read(self):
-        return self.oss.get_object(self.bucket, self.object)
+        resp = self.oss.get_object(self.bucket, self.object)
+        resp.name = self.bucket + '/' + self.object
+        return resp
      
     def mkdir(self):
         bucket = self.bucket
@@ -138,7 +152,7 @@ class ftp_file:
         if not object.endswith('/'):
             object = object + '/'
         content_type = "text/HTML"
-        self.oss.put_object_from_string(bucket, object, 'Dir')
+        resp = self.oss.put_object_from_string(bucket, object, 'Dir')
         
     def rmdir(self):
         bucket = self.bucket

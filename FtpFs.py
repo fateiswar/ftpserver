@@ -1,4 +1,32 @@
 #coding=utf-8
+#  ======================================================================
+#  Copyright (C) 2007-2013 Giampaolo Rodola' <g.rodola@gmail.com>
+#
+#                         All Rights Reserved
+#
+# Permission is hereby granted, free of charge, to any person
+# obtaining a copy of this software and associated documentation
+# files (the "Software"), to deal in the Software without
+# restriction, including without limitation the rights to use,
+# copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the
+# Software is furnished to do so, subject to the following
+# conditions:
+#
+# The above copyright notice and this permission notice shall be
+# included in all copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+# EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
+# OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+# NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+# HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+# WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+# FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+# OTHER DEALINGS IN THE SOFTWARE.
+#
+#  ======================================================================
+
 from pyftpdlib.filesystems import AbstractedFS
 from filesystem_view import *
 import sys
@@ -13,34 +41,11 @@ _months_map = {1:'Jan', 2:'Feb', 3:'Mar', 4:'Apr', 5:'May', 6:'Jun', 7:'Jul',
                8:'Aug', 9:'Sep', 10:'Oct', 11:'Nov', 12:'Dec'}
     
 class ftpFS(AbstractedFS):
-    timer = 0
     def __init__(self, root, cmd_channel):
         AbstractedFS.__init__(self, root, cmd_channel)
     
-    @property
-    def root(self):
-        return self._root
-    
-    @property
-    def cwd(self):
-        return self._cwd
-    
-    @root.setter
-    def root(self, path):
-        assert isinstance(path, unicode), path
-    
-    @cwd.setter
-    def cwd(self, path):
-        assert isinstance(path, unicode), path
-        print self.timer, 'cwd', path
-        self.timer += 1
-        self._cwd = path
-    
     def open(self, filename, mode):
         assert isinstance(filename, unicode), filename
-        print self.timer, 'cwd', filename, mode
-        self.timer += 1
-        #print self.cwd(), filename, mode
         if mode.startswith('r') or mode.startswith('R'):
             return fsview.open_read(filename)
         else:
@@ -48,10 +53,8 @@ class ftpFS(AbstractedFS):
     
     def chdir(self, path):
         assert isinstance(path, unicode), path
-        #import pdb
-        #pdb.set_trace()
-        print self.timer, 'chdir', path
-        self.timer += 1
+        if not self.isdir(path):
+            raise FilesystemError, 'Not a dir.'
         path = path.replace('\\', '/')
         if not path.startswith(self.root):
             path = u'/'
@@ -61,41 +64,27 @@ class ftpFS(AbstractedFS):
             path = u'/'
         if not path.startswith('/'):
             path = '/' + path
-        if not self.isdir(path):
-            raise FilesystemError, 'Not a dir.'
         self._cwd = path
     
     def mkdir(self, path):
         assert isinstance(path, unicode), path
-        print self.timer, 'mkdir', path
-        self.timer += 1
         fsview.mkdir(path)
         
     def listdir(self, path):
         assert isinstance(path, unicode), path
-        #import pdb
-        #pdb.set_trace()
-        print self.timer, 'listdir', path
-        self.timer += 1
         return fsview.listdir(path)
         
     def rmdir(self, path):
         assert isinstance(path, unicode), path
-        print self.timer, 'rmdir', path
-        self.timer += 1
         fsview.rmdir(path)
         
     def remove(self, path):
         assert isinstance(path, unicode), path
-        print self.timer, 'remove', path
-        self.timer += 1
         fsview.remove(path)
         
     def rename(self, src, dst):
         assert isinstance(src, unicode), src
         assert isinstance(dst, unicode), dst
-        print self.timer, 'rename', src, dst
-        self.timer += 1
         fsview.rename(src, dst)
         
     def chmod(self, path, mode):
@@ -119,7 +108,6 @@ class ftpFS(AbstractedFS):
     
     def isdir(self, path):
         assert isinstance(path, unicode), path
-        #print path
         return fsview.isdir(path)
     
     def get_list_dir(self, path):
@@ -144,13 +132,12 @@ class ftpFS(AbstractedFS):
         else:
             timefunc = time.localtime
         SIX_MONTHS = 180 * 24 * 60 * 60
-        #readlink = getattr(self, 'readlink', None)
         now = time.time()
         for (basename, size, modify) in listing:
             if basename == '':
                 continue
             file = os.path.join(basedir, basename)
-            isdir = self.isdir(file)
+            isdir = file.endswith('/')
             if isdir:
                 perms = 'drwxrwxrwx'
             else:
@@ -202,7 +189,7 @@ class ftpFS(AbstractedFS):
                 continue
             retfacts = dict()
             file = os.path.join(basedir, basename)
-            isdir = self.isdir(file)
+            isdir = file.endswith('/')
             if isdir:
                 if show_type:
                     if basename == '.':
@@ -219,7 +206,6 @@ class ftpFS(AbstractedFS):
                 if show_perm:
                     retfacts['perm'] = permfile
             if show_size and not isdir:
-                #retfacts['size'] = self.getsize(file)
                 retfacts['size'] = size
             # last modification time
             if not isdir:

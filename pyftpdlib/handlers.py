@@ -801,9 +801,13 @@ class DTPHandler(AsyncChat):
             AsyncChat.close(self)
             if self._resp:
                 self.cmd_channel.respond(self._resp[0], logfun=self._resp[1])
-
-            if self.file_obj is not None and not self.file_obj.closed:
-                self.file_obj.close()
+            
+            try:
+                if self.file_obj is not None and not self.file_obj.closed:
+                    self.file_obj.close()
+            except:
+                pass
+            
             if self._idler is not None and not self._idler.cancelled:
                 self._idler.cancel()
             if self.file_obj is not None:
@@ -1092,6 +1096,7 @@ class FTPHandler(AsyncChat):
     unicode_errors = 'replace'
     log_prefix = '%(remote_ip)s:%(remote_port)s-[%(username)s]'
     timecount = 0
+    debug = False
 
     def __init__(self, conn, server, ioloop=None):
         """Initialize the command channel.
@@ -2001,8 +2006,9 @@ class FTPHandler(AsyncChat):
         # - If no argument, fall back on cwd as default.
         # - Some older FTP clients erroneously issue /bin/ls-like LIST
         #   formats in which case we fall back on cwd as default.
-        print self.timecount, 'ftp_LIST', path
-        self.timecount += 1
+        if self.debug:
+            print self.timecount, 'ftp_LIST', path
+            self.timecount += 1
         
         try:
             iterator = self.run_as_current_user(self.fs.get_list_dir, path)
@@ -2020,8 +2026,9 @@ class FTPHandler(AsyncChat):
         compact form to the client.
         On success return the directory path, else None.
         """
-        print self.timecount, 'ftp_NLST', path
-        self.timecount += 1
+        if self.debug:
+            print self.timecount, 'ftp_NLST', path
+            self.timecount += 1
         
         try:
             if self.fs.isdir(path):
@@ -2067,8 +2074,9 @@ class FTPHandler(AsyncChat):
         form as defined in RFC-3659.
         On success return the path just listed, else None.
         """
-        print self.timecount, 'ftp_MLST', path
-        self.timecount += 1
+        if self.debug:
+            print self.timecount, 'ftp_MLST', path
+            self.timecount += 1
         
         line = self.fs.fs2ftp(path)
         basedir, basename = os.path.split(path)
@@ -2097,16 +2105,16 @@ class FTPHandler(AsyncChat):
         as defined in RFC-3659.
         On success return the path just listed, else None.
         """
-        print self.timecount, 'ftp_MLSD', path
-        self.timecount += 1
+        if self.debug:
+            print self.timecount, 'ftp_MLSD', path
+            self.timecount += 1
         
         # RFC-3659 requires 501 response code if path is not a directory
-        if not self.fs.isdir(path):
-            self.respond("501 No such directory.")
-            return
+        #if not self.fs.isdir(path):
+            #self.respond("501 No such directory.")
+            #return
         try:
             listing = self.run_as_current_user(self.fs.listdir, path)
-            print 'ftp_MLSD', listing
         except (OSError, FilesystemError):
             err = sys.exc_info()[1]
             why = _strerror(err)
@@ -2123,8 +2131,9 @@ class FTPHandler(AsyncChat):
         """Retrieve the specified file (transfer from the server to the
         client).  On success return the file path else None.
         """
-        print self.timecount, 'ftp_RETR', file
-        self.timecount += 1
+        if self.debug:
+            print self.timecount, 'ftp_RETR', file
+            self.timecount += 1
         
         rest_pos = self._restart_position
         self._restart_position = 0
@@ -2165,8 +2174,9 @@ class FTPHandler(AsyncChat):
         """Store a file (transfer from the client to the server).
         On success return the file path, else None.
         """
-        print self.timecount, 'ftp_STOR', file, mode
-        self.timecount += 1
+        if self.debug:
+            print self.timecount, 'ftp_STOR', file, mode
+            self.timecount += 1
         # A resume could occur in case of APPE or REST commands.
         # In that case we have to open file object in different ways:
         # STOR: mode = 'w'
@@ -2188,6 +2198,7 @@ class FTPHandler(AsyncChat):
             self.respond('550 %s.' %why)
             return
 
+        rest_pos = 0 #fixme
         if rest_pos:
             # Make sure that the requested offset is valid (within the
             # size of the file being resumed).
@@ -2237,8 +2248,9 @@ class FTPHandler(AsyncChat):
         # file that will be written.
 
         # watch for STOU preceded by REST, which makes no sense.
-        print self.timecount, 'ftp_STOU', line
-        self.timecount += 1
+        if self.debug:
+            print self.timecount, 'ftp_STOU', line
+            self.timecount += 1
         
         if self._restart_position:
             self.respond("450 Can't STOU while REST request is pending.")
@@ -2456,8 +2468,9 @@ class FTPHandler(AsyncChat):
         # The 257 response is supposed to include the directory
         # name and in case it contains embedded double-quotes
         # they must be doubled (see RFC-959, chapter 7, appendix 2).
-        print self.timecount, 'ftp_PWD', line
-        self.timecount += 1
+        if self.debug:
+            print self.timecount, 'ftp_PWD', line
+            self.timecount += 1
         
         cwd = self.fs.cwd
         assert isinstance(cwd, unicode), cwd
@@ -2475,15 +2488,17 @@ class FTPHandler(AsyncChat):
         # the process is started we'll get into troubles (os.getcwd()
         # will fail with ENOENT) but we can't do anything about that
         # except logging an error.
-        print self.timecount, 'ftp_CWD', path
-        self.timecount += 1
+        if self.debug:
+            print self.timecount, 'ftp_CWD', path
+            self.timecount += 1
         
         init_cwd = getcwdu()
         try:
             self.run_as_current_user(self.fs.chdir, path)
         except (OSError, FilesystemError):
-            err = sys.exc_info()[1]
-            why = _strerror(err)
+            if self.debug:
+                print 'ftp_CWD Exception'
+            why = 'Invalid argument.'
             self.respond('550 %s.' % why)
         else:
             cwd = self.fs.cwd

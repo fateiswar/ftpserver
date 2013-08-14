@@ -10,8 +10,8 @@ except:
     from oss_xml_handler import *
 from pyftpdlib._compat import PY3, u, unicode, property
 HOST = "oss.aliyuncs.com"
-ACCESS_ID = "c35SzGhvT6ovyOej"
-SECRET_ACCESS_KEY = "poExTElXz9fzLsTO4kzL8FKmh2d42k"
+ACCESS_ID = "GlfRbLKQLasZKUUa"
+SECRET_ACCESS_KEY = "aZCyj5Wxm90tVcwUX3cLpiYGJQMMQl"
 #ACCESS_ID and SECRET_ACCESS_KEY 榛樿鏄┖锛岃濉叆鎮ㄧ敵璇风殑姝ｇ‘鐨処D鍜孠EY.
    
 if __name__ == "__main__": 
@@ -22,11 +22,11 @@ if __name__ == "__main__":
     oss = OssAPI(HOST, ACCESS_ID, SECRET_ACCESS_KEY)
     sep = "=============================="
     
-    object_list, dir_list = oss.list_objects('kokopelli-hangzhou-a', 'bb/', '/')
+    object_list, dir_list = oss.list_objects(u'kokopelli-hangzhou', 'a', '/')
     print object_list
     print dir_list
     
-    resp = oss.get_bucket('kokopelli-hangzhou-a', '', '', '/')
+    resp = oss.get_bucket('kokopelli-hangzhou', 'a', '/')
     print resp.read()
     
     import pdb

@@ -4,11 +4,16 @@ from pyftpdlib.servers import FTPServer
 from pyftpdlib.filesystems import AbstractedFS
 from filesystem_view import *
 from FtpFs import *
+from oss_client.oss_api import *
 
 import os
 from optparse import OptionParser
 
 def main(user, password, port, bucket, access_id, access_key):
+    fs_view.access_id = access_id
+    fs_view.access_key = access_key
+    fsview.oss = OssAPI(fs_view.host, fs_view.access_id, fs_view.access_key)
+    
     authorizer = DummyAuthorizer()
     
     authorizer.add_user(user, password, bucket, perm = 'elradfmwM')
@@ -18,9 +23,6 @@ def main(user, password, port, bucket, access_id, access_key):
     handler.authorizer = authorizer
     handler.abstracted_fs = ftpFS
     #handler.abstracted_fs = AbstractedFS
-    
-    fs_view.access_id = access_id
-    fs_view.access_key = access_key
     
     handler.banner = 'pyftpdlib based ftpd ready'
     
@@ -59,7 +61,6 @@ if __name__ == '__main__':
     if not bucket.endswith('/'):
         bucket = bucket + '/'
         
-    print user, password, port, bucket
     main(user, password, port, bucket, options.access_id, options.access_key)
     
     
