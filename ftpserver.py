@@ -26,7 +26,7 @@ def main(user, password, port, bucket, access_id, access_key):
     
     handler.banner = 'pyftpdlib based ftpd ready'
     
-    address = ('127.0.0.1', port)
+    address = ('0.0.0.0', port)
     server = FTPServer(address, handler)
     
     server.serve_forever()
