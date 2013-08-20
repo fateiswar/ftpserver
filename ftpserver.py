@@ -33,8 +33,8 @@ def main(user, password, port, bucket, access_id, access_key):
     
 if __name__ == '__main__':
     parser = OptionParser()
-    parser.add_option("", "--access_id", dest="access_id", help="")
-    parser.add_option("", "--access_key", dest="access_key", help="")
+    parser.add_option("", "--access_key_id", dest="access_id", help="")
+    parser.add_option("", "--access_key_secret", dest="access_key", help="")
     parser.add_option("", "--ftp_user_name", dest="ftp_user_name", help="")
     parser.add_option("", "--ftp_password", dest="ftp_password", help="")
     parser.add_option("", "--bucket", dest="bucket", help="")
